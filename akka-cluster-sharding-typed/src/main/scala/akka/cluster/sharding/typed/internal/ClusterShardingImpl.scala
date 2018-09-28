@@ -30,6 +30,7 @@ import akka.cluster.sharding.ShardCoordinator.LeastShardAllocationStrategy
 import akka.cluster.sharding.ShardCoordinator.ShardAllocationStrategy
 import akka.cluster.sharding.ShardRegion
 import akka.cluster.sharding.ShardRegion.{ StartEntity ⇒ UntypedStartEntity }
+import akka.cluster.sharding.typed.scaladsl.ShardedEntityContext
 import akka.cluster.typed.Cluster
 import akka.event.Logging
 import akka.event.LoggingAdapter
@@ -141,7 +142,7 @@ import akka.util.Timeout
       case Some(e) ⇒ e
     }).asInstanceOf[ShardingMessageExtractor[E, M]]
 
-    internalStart(shardedEntity.create, shardedEntity.entityProps, shardedEntity.typeKey,
+    internalStart(shardedEntity.createBehavior, shardedEntity.entityProps, shardedEntity.typeKey,
       shardedEntity.stopMessage, settings, extractor, shardedEntity.allocationStrategy)
   }
 
@@ -149,7 +150,10 @@ import akka.util.Timeout
   override def start[M, E](shardedEntity: javadsl.ShardedEntity[M, E]): ActorRef[E] = {
     import scala.compat.java8.OptionConverters._
     start(new scaladsl.ShardedEntity(
-      create = (shard, entitityId) ⇒ shardedEntity.createBehavior.apply(shard, entitityId),
+      createBehavior = (ctx: ShardedEntityContext) ⇒ Behaviors.setup[M] { actorContext ⇒
+        shardedEntity.createBehavior(
+          new javadsl.ShardedEntityContext[M](ctx.entityId, ctx.shard, actorContext.asJava))
+      },
       typeKey = shardedEntity.typeKey.asScala,
       stopMessage = shardedEntity.stopMessage,
       entityProps = shardedEntity.entityProps,
@@ -160,7 +164,7 @@ import akka.util.Timeout
   }
 
   private def internalStart[M, E](
-    behavior:           (ActorRef[scaladsl.ClusterSharding.ShardCommand], String) ⇒ Behavior[M],
+    behavior:           ShardedEntityContext ⇒ Behavior[M],
     entityProps:        Props,
     typeKey:            scaladsl.EntityTypeKey[M],
     stopMessage:        M,
@@ -185,7 +189,7 @@ import akka.util.Timeout
       if (settings.shouldHostShard(cluster)) {
         log.info("Starting Shard Region [{}]...", typeKey.name)
 
-        val shardCommandDelegator =
+        val shardCommandDelegator: ActorRef[scaladsl.ClusterSharding.ShardCommand] =
           shardCommandActors.computeIfAbsent(
             typeKey.name,
             new java.util.function.Function[String, ActorRef[scaladsl.ClusterSharding.ShardCommand]] {
@@ -198,7 +202,7 @@ import akka.util.Timeout
             })
 
         val untypedEntityPropsFactory: String ⇒ akka.actor.Props = { entityId ⇒
-          PropsAdapter(behavior(shardCommandDelegator, entityId), entityProps)
+          PropsAdapter(behavior(new ShardedEntityContext(entityId, shardCommandDelegator)), entityProps)
         }
 
         untypedSharding.internalStart(

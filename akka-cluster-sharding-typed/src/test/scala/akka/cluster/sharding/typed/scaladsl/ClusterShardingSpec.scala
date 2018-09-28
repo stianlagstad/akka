@@ -184,18 +184,18 @@ class ClusterShardingSpec extends ScalaTestWithActorTestKit(ClusterShardingSpec.
   }
 
   private val shardingRef1: ActorRef[ShardingEnvelope[TestProtocol]] = sharding.start(ShardedEntity(
-    (shard, _) ⇒ behavior(shard),
     typeKey,
+    ctx ⇒ behavior(ctx.shard),
     StopPlz()))
 
   private val shardingRef2 = sharding2.start(ShardedEntity(
-    (shard, _) ⇒ behavior(shard),
     typeKey,
+    ctx ⇒ behavior(ctx.shard),
     StopPlz()))
 
   private val shardingRef3: ActorRef[IdTestProtocol] = sharding.start(ShardedEntity(
-    (shard, _) ⇒ behaviorWithId(shard),
     typeKey2,
+    ctx ⇒ behaviorWithId(ctx.shard),
     IdStopPlz())
     .withMessageExtractor(ShardingMessageExtractor.noEnvelope[IdTestProtocol](10, IdStopPlz()) {
       case IdReplyPlz(id, _)  ⇒ id
@@ -205,8 +205,8 @@ class ClusterShardingSpec extends ScalaTestWithActorTestKit(ClusterShardingSpec.
   )
 
   private val shardingRef4 = sharding2.start(ShardedEntity(
-    (shard, _) ⇒ behaviorWithId(shard),
     typeKey2,
+    ctx ⇒ behaviorWithId(ctx.shard),
     IdStopPlz())
     .withMessageExtractor(
       ShardingMessageExtractor.noEnvelope[IdTestProtocol](10, IdStopPlz()) {
@@ -264,8 +264,8 @@ class ClusterShardingSpec extends ScalaTestWithActorTestKit(ClusterShardingSpec.
       val typeKey3 = EntityTypeKey[TestProtocol]("passivate-test")
 
       val shardingRef3: ActorRef[ShardingEnvelope[TestProtocol]] = sharding.start(ShardedEntity(
-        (shard, _) ⇒ behavior(shard, Some(stopProbe.ref)),
         typeKey3,
+        ctx ⇒ behavior(ctx.shard, Some(stopProbe.ref)),
         StopPlz()))
 
       shardingRef3 ! ShardingEnvelope(s"test1", ReplyPlz(p.ref))
@@ -282,8 +282,8 @@ class ClusterShardingSpec extends ScalaTestWithActorTestKit(ClusterShardingSpec.
       // sharding has been already started with EntityTypeKey[TestProtocol]("envelope-shard")
       val ex = intercept[Exception] {
         sharding.start(ShardedEntity(
-          (shard, _) ⇒ behaviorWithId(shard),
           EntityTypeKey[IdTestProtocol]("envelope-shard"),
+          ctx ⇒ behaviorWithId(ctx.shard),
           IdStopPlz()))
       }
 
@@ -348,8 +348,8 @@ class ClusterShardingSpec extends ScalaTestWithActorTestKit(ClusterShardingSpec.
       val ignorantKey = EntityTypeKey[TestProtocol]("ignorant")
 
       sharding.start(ShardedEntity(
-        _ ⇒ Behaviors.ignore[TestProtocol],
         ignorantKey,
+        _ ⇒ Behaviors.ignore[TestProtocol],
         StopPlz()))
 
       val ref = sharding.entityRefFor(ignorantKey, "sloppy")

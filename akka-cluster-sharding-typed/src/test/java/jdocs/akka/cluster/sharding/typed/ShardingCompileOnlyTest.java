@@ -105,9 +105,9 @@ public class ShardingCompileOnlyTest {
     EntityTypeKey<CounterCommand> typeKey = EntityTypeKey.create(CounterCommand.class, "Counter");
 
     sharding.start(
-      ShardedEntity.create(
-        (shard, entityId) -> counter2(shard, entityId),
+      ShardedEntity.of(
         typeKey,
+        ctx -> counter2(ctx.shard(), ctx.entityId()),
         new GoodByeCounter()));
     //#counter-passivate-start
   }
@@ -126,9 +126,9 @@ public class ShardingCompileOnlyTest {
     EntityTypeKey<CounterCommand> typeKey = EntityTypeKey.create(CounterCommand.class, "Counter");
 
     ActorRef<ShardingEnvelope<CounterCommand>> shardRegion = sharding.start(
-      ShardedEntity.create(
-        entityId -> counter(entityId,0),
+      ShardedEntity.of(
         typeKey,
+        ctx -> counter(ctx.entityId(),0),
         new GoodByeCounter()));
     //#start
 
@@ -150,9 +150,9 @@ public class ShardingCompileOnlyTest {
     EntityTypeKey<BlogCommand> blogTypeKey = EntityTypeKey.create(BlogCommand.class, "BlogPost");
 
     sharding.start(
-      ShardedEntity.create(
-        BlogBehavior::behavior,
+      ShardedEntity.of(
         blogTypeKey,
+        ctx -> BlogBehavior.behavior(ctx.entityId()),
         new PassivatePost()));
     //#persistence
   }

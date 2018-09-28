@@ -13,6 +13,7 @@ import akka.persistence.typed.EventAdapter
 import akka.persistence.typed.internal._
 import scala.util.Try
 
+import akka.annotation.DoNotInherit
 import akka.persistence.typed.PersistenceId
 
 object PersistentBehavior {
@@ -70,7 +71,10 @@ object PersistentBehavior {
 
 }
 
-trait PersistentBehavior[Command, Event, State] extends DeferredBehavior[Command] {
+@DoNotInherit trait PersistentBehavior[Command, Event, State] extends DeferredBehavior[Command] {
+
+  def persistenceId: PersistenceId
+
   /**
    * The `callback` function is called to notify the actor that the recovery process
    * is finished.
