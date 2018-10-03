@@ -12,6 +12,7 @@ import akka.persistence._
 import akka.persistence.typed.EventAdapter
 import akka.persistence.typed.internal._
 import scala.util.Try
+import akka.persistence.typed.ExpectingReply
 
 import akka.persistence.typed.PersistenceId
 
@@ -42,6 +43,16 @@ object PersistentBehavior {
     persistenceId:  PersistenceId,
     emptyState:     State,
     commandHandler: (State, Command) ⇒ Effect[Event, State],
+    eventHandler:   (State, Event) ⇒ State): PersistentBehavior[Command, Event, State] =
+    PersistentBehaviorImpl(persistenceId, emptyState, commandHandler, eventHandler)
+
+  /**
+   * Create a `Behavior` for a persistent actor that is enforcing replies to commands.
+   */
+  def withEnforcedReplies[Command <: ExpectingReply[_], Event, State](
+    persistenceId:  PersistenceId,
+    emptyState:     State,
+    commandHandler: (State, Command) ⇒ ReplyEffect[Event, State],
     eventHandler:   (State, Event) ⇒ State): PersistentBehavior[Command, Event, State] =
     PersistentBehaviorImpl(persistenceId, emptyState, commandHandler, eventHandler)
 

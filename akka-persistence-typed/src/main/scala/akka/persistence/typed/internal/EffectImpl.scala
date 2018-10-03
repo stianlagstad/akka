@@ -25,7 +25,7 @@ private[akka] abstract class EffectImpl[+Event, State] extends javadsl.Effect[Ev
 /** INTERNAL API */
 @InternalApi
 private[akka] object CompositeEffect {
-  def apply[Event, State](effect: Effect[Event, State], sideEffects: SideEffect[State]): EffectImpl[Event, State] =
+  def apply[Event, State](effect: Effect[Event, State], sideEffects: SideEffect[State]): CompositeEffect[Event, State] =
     CompositeEffect[Event, State](effect, sideEffects :: Nil)
 }
 
@@ -33,7 +33,7 @@ private[akka] object CompositeEffect {
 @InternalApi
 private[akka] final case class CompositeEffect[Event, State](
   persistingEffect: Effect[Event, State],
-  _sideEffects:     im.Seq[SideEffect[State]]) extends EffectImpl[Event, State] {
+  _sideEffects:     im.Seq[SideEffect[State]]) extends EffectImpl[Event, State] with scaladsl.ReplyEffect[Event, State] { // FIXME what is the best structure of ReplyEffect vs CompositeEffect?
 
   override val events = persistingEffect.events
 

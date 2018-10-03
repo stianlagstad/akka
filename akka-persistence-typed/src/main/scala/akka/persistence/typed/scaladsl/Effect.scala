@@ -10,7 +10,11 @@ import akka.persistence.typed.{ SideEffect, Stop }
 import akka.persistence.typed.internal._
 import scala.collection.{ immutable ⇒ im }
 
+import akka.Done
 import akka.persistence.typed.ExpectingReply
+import akka.persistence.typed.NoReplyEffectImpl
+import akka.persistence.typed.ReplyEffectImpl
+import akka.persistence.typed.scaladsl.Effect.reply
 
 /**
  * Factories for effects - how a persistent actor reacts on a command
@@ -59,6 +63,18 @@ object Effect {
    * Side effects can be chained with `andThen`
    */
   def stop[Event, State]: Effect[Event, State] = none.andThenStop()
+
+  // FIXME doc all reply and thenReply stuff
+
+  def reply[ReplyMessage, Event, State](cmd: ExpectingReply[ReplyMessage])(replyWithMessage: ReplyMessage): ReplyEffect[Event, State] =
+    none[Event, State].thenReply[ReplyMessage](cmd)(_ ⇒ replyWithMessage)
+
+  def replyDone[Event, State](cmd: ExpectingReply[Done]): ReplyEffect[Event, State] =
+    reply(cmd)(Done)
+
+  def noReply[ReplyMessage, Event, State](cmd: ExpectingReply[ReplyMessage]): ReplyEffect[Event, State] =
+    none[Event, State].thenNoReply[ReplyMessage](cmd)
+
 }
 
 /**
@@ -93,7 +109,16 @@ trait Effect[+Event, State] {
     CompositeEffect(this, Stop.asInstanceOf[SideEffect[State]])
   }
 
-  def thenReply[ReplyMessage](cmd: ExpectingReply[ReplyMessage])(replyWithMessage: State ⇒ ReplyMessage): Effect[Event, State] =
-    andThen(SideEffect[State](newState ⇒ cmd.replyTo ! replyWithMessage(newState)))
+  def thenReply[ReplyMessage](cmd: ExpectingReply[ReplyMessage])(replyWithMessage: State ⇒ ReplyMessage): ReplyEffect[Event, State] =
+    CompositeEffect(this, new ReplyEffectImpl[ReplyMessage, State](cmd.replyTo, replyWithMessage))
+
+  def thenReplyDone(cmd: ExpectingReply[Done]): ReplyEffect[Event, State] =
+    thenReply(cmd)(_ ⇒ Done)
+
+  def thenNoReply[ReplyMessage](cmd: ExpectingReply[ReplyMessage]): ReplyEffect[Event, State] =
+    CompositeEffect(this, new NoReplyEffectImpl[State])
+
 }
+
+trait ReplyEffect[+Event, State] extends Effect[Event, State]
 

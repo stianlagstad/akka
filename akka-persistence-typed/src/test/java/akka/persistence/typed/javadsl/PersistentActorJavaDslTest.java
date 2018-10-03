@@ -383,7 +383,7 @@ public class PersistentActorJavaDslTest extends JUnitSuite {
 
   @Test
   public void thenReplyEffect() {
-    ActorRef<Command> c = testKit.spawn(counter("c1b"));
+    ActorRef<Command> c = testKit.spawn(counter(new PersistenceId("c1b")));
     TestProbe<Done> probe = testKit.createTestProbe();
     c.tell(new IncrementWithConfirmation(probe.ref()));
     probe.expectMessage(Done.getInstance());
