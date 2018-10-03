@@ -5,6 +5,7 @@
 package akka.persistence.typed.javadsl
 
 import java.util.function.BiFunction
+import java.util.function.{ Function ⇒ JFunction }
 
 import akka.annotation.InternalApi
 import akka.util.OptionVal
@@ -49,6 +50,18 @@ final class EventHandlerBuilder[State >: Null, Event]() {
     this
   }
 
+  /**
+   * Match any event which is an instance of `E` or a subtype of `E`.
+   *
+   * Use this when then `State` is not needed in the `handler`, otherwise there is an overloaded method that pass
+   * the state in a `BiFunction`.
+   */
+  def matchEvent[E <: Event](eventClass: Class[E], f: JFunction[E, State]): EventHandlerBuilder[State, Event] = {
+    matchEvent[E](eventClass, new BiFunction[State, E, State] {
+      override def apply(state: State, event: E): State = f(event)
+    })
+  }
+
   def matchEvent[E <: Event, S <: State](eventClass: Class[E], stateClass: Class[S],
                                          biFunction: BiFunction[S, E, State]): EventHandlerBuilder[State, Event] = {
 
@@ -66,6 +79,19 @@ final class EventHandlerBuilder[State >: Null, Event]() {
    */
   def matchAny(biFunction: BiFunction[State, Event, State]): EventHandler[State, Event] = {
     addCase(_ ⇒ true, biFunction.asInstanceOf[BiFunction[State, Event, State]])
+    build()
+  }
+
+  /**
+   * Match any event.
+   *
+   * Use this when then `State` is not needed in the `handler`, otherwise there is an overloaded method that pass
+   * the state in a `BiFunction`.
+   */
+  def matchAny(f: JFunction[Event, State]): EventHandler[State, Event] = {
+    matchAny(new BiFunction[State, Event, State] {
+      override def apply(state: State, event: Event): State = f(event)
+    })
     build()
   }
 
