@@ -41,6 +41,14 @@ object EffectFactory extends EffectFactories[Nothing, Nothing, Nothing]
    * This command is not handled, but it is not an error that it isn't.
    */
   def unhandled: Effect[Event, State] = Unhandled.asInstanceOf[Effect[Event, State]]
+
+  // FIXME define javadsl.ReplyEffect
+
+  def reply[ReplyMessage](cmd: ExpectingReply[ReplyMessage], replyWithMessage: ReplyMessage): Effect[Event, State] =
+    none.thenReply[ReplyMessage](cmd, new function.Function[State, ReplyMessage] {
+      override def apply(param: State): ReplyMessage = replyWithMessage
+    })
+
 }
 
 /**
