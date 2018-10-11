@@ -387,8 +387,9 @@ Cycles in bounded stream topologies need special considerations to avoid potenti
 This section shows several examples of problems that can arise from the presence of feedback arcs in stream processing
 graphs.
 
-In the following examples runnable graphs are created but do not run because each have some issue and will deadlock after start.
-`Source` variable is not defined as the nature and number of element does not matter for described problems.
+In the following examples runnable graphs are created but do not run because each have some issue and will deadlock after
+start. The `Source` variable is not defined as the nature and number of elements does not matter for the described
+problems.
 
 The first example demonstrates a graph that contains a naïve cycle.
 The graph takes elements from the source, prints them, then broadcasts those elements
